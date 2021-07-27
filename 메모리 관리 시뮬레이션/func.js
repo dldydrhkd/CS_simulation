@@ -1,93 +1,147 @@
-module.exports._init = (stackSize, heapSize) => {
-  // [StackwholeSize, StackusedSize, Stackavailable, HeapwholeSize, HeapusedSize, Heapavailable]  
-  let stackArray = [];
-  let heapArray = [];
-  stackArray.length = stackSize;
-  heapArray.length = heapSize;
-  for(let i=0 ; i<stackSize ; i++) stackArray[i] = false;
-  for(let i=0 ; i<heapSize ; i++) heapArray[i] = false;
-
-  return [stackArray, heapArray]
-}
-
-module.exports.setSize = (map, key, value) => {
-  map.set(key, value);
-}
-
-module.exports.malloc = (stack, heap, stackpointer, map, type, count, heapSize, stackaddress) => {
-  typeSize = map.get(type);
-  wholeSize = typeSize * count;
-  let baseAddress = 0;
-  for(baseAddress = 0 ; baseAddress<heapSize ; baseAddress++)
-    if(heap[baseAddress] === false)
-      break;
-  for(let i=baseAddress ; i<baseAddress+wholeSize ; i++) heap[i] = true;
-  stackpointer.set(`0x${stack.lastIndexOf(false).toString(16).padStart(8, '0')}`, [`0x${baseAddress.toString(16).padStart(8, '0')}`, wholeSize, type, true]);
-  // console.log(typeof(stack.lastIndexOf(false).toString(16).padStart(8, '0')));
-  for(let i=stackaddress ; i>stackaddress-4 ; i--) stack[i] = true;
-  return `0x${stack.lastIndexOf(false).toString(16).padStart(8, '0')}`;
-}
-
-module.exports.free = (heap, stackpointer, address) => {
-  try{
-    heapAddress = stackpointer.get(address)[0];
-    thatSize = stackpointer.get(address)[1];
-    // console.log(`temp=${temp}`);
-    // console.log(`addresstype:${typeof(address)}`);
-    // console.log(`stackpointer=${stackpointer}`);
-    // console.log(stackpointer);
-    // console.log(`address=${address}`);
-    console.log(heapAddress, thatSize);
-    for(let i=parseInt(heapAddress) ; i<thatSize ; i++) heap[i] = true;
-    stackpointer.delete(address);
-    console.log(stackpointer);
-  } catch (err) {
-    console.log(`잘못된 Stack 영역 포인터 주소입니다.`);
+const return_address = (num) =>{
+  var str = num.toString(16);
+  var temp = "";
+  for(var i = 0; i<4-str.length; i++){
+      temp+='0';
   }
+  return (temp+str).toUpperCase();
 }
 
-module.exports.call = (stack, callstack, name, paramCount) => {
-  if(8 + 4 * paramCount > stack.length) { console.log(`Stack 용량을 초과합니다.`); return; }
-  callstack.push(name); // 수정해야할 수 있음 뒤 함수 구현할때
-  sp = stack.lastIndexOf(false);
-  ret = sp;
-  for(let i=sp ; i>sp - 8 - 4 * paramCount ; i--) stack[i] = true;
-  return ret;
-}
-
-module.exports.returnf = (callstack, name) => {
-  if(callstack.length === 0) console.log(`call Stack이 비었습니다.`);
-  else if(callstack[callstack.length-1] === name) callstack.pop();
-  else console.log(`call Stack의 마지막 함수 이름과 다릅니다.`);
-}
-
-module.exports.usage = (stack, heap) => {
-  ret = "";
-  stackUsing = 0;
-  heapUsing = 0;
-  for(let i=0 ; i<stack.length ; i++) if(stack[i]) stackUsing++;
-  for(let i=0 ; i<heap.length ; i++) if(heap[i]) heapUsing++;
-  ret += `Stack 영역 전체 용량 : ${stack.length}\n`;
-  ret += `Stack 사용중인 용량 : ${stackUsing}\n`;
-  ret += `Stack 남은 용량 : ${stack.length - stackUsing}\n`;
-  ret += `Heap 영역 전체 용량 : ${heap.length}\n`;
-  ret += `Heap 사용중인 용량 : ${heapUsing}\n`;
-  ret += `Heap 남은 용량 : ${heap.length - heapUsing}`;
-
-  return ret;
-}
-
-module.exports.heapdump = (type, stackpointer) => {
-  ret = "--- Heap 영역 정보 ---\n";
-  // console.log(stackpointer.keys());
-  stackpointer.forEach((value, key) => ret += `Heap 시작 주소 ${value[0]} 에 ${value[2]} 자료형이 ${value[1] / type.get(value[2])}개 만큼 담긴 영역의 Stack pointer 주소 : ${key}\n`);
-
-  return ret;
-}
-
-module.exports.garbageCollect = (stackpointer) => {
-  stackpointer.forEach((value, key) => {
-    if(!value[3]) stackpointer.delete(key);
-  });
-  console.log(`heap에 할당된 영역의 주소가 stack에 담겨있지 않은 heap 공간을 삭제했습니다.`);
+module.exports = {
+  init({stackSize, heapSize} = {}){
+     this.STACK_SIZE = stackSize;
+     this.HEAP_SIZE = heapSize;
+     this.low_address = 0;
+     this.high_address = stackSize+heapSize;
+     this.current_stack_point = stackSize+heapSize;
+     this.current_heap_point = 0;
+     this.type = new Map();
+     this.st = []
+     this.heap = []
+     return "0x"+return_address(stackSize+heapSize);
+  },
+  setSize(type, length){
+      if(this.type.has(type)){
+          console.log("한번 지정한 type은 변경할 수 없습니다.");
+      }
+      this.type.set(type,length);
+  },
+  malloc(type, count){
+      var res;
+      if(this.type.has(type)){
+          var allocate_length;
+          if(this.type.get(type) < 8){
+              allocate_length = 8*count;
+          }
+          else{
+              allocate_length = count*this.type.get(type);
+          }
+          if(allocate_length > this.HEAP_SIZE-this.current_heap_point || this.STACK_SIZE-(this.high_address-this.current_stack_point)<4){
+              return("메모리 공간 부족");
+          }
+          else{
+              res = this.current_stack_point;
+              this.st.push({name:"malloc", type:"pointer", heap_addr:this.current_heap_point, size:4, address:this.current_stack_point});
+              this.heap.push({name:"malloc", type:type, stack_addr:this.current_stack_point, size: allocate_length, address:this.current_heap_point}); // heap 할당
+              this.current_heap_point = this.current_heap_point+allocate_length;
+              this.current_stack_point = this.current_stack_point-4;
+              return "0x"+return_address(res);
+          }
+      }
+  },
+  free(pointer){
+      let heap_addr;
+      this.st.forEach(element => {
+          if(element.address == pointer.toString(10)){
+              element.type = 'empty';
+              heap_addr = element.heap_addr;
+          }
+      });
+      for(var i=0; i<this.heap.length; i++){
+          if(this.heap[i].address==heap_addr){
+              this.current_heap_point -= this.heap[i].size;
+              for(var j=i+1; j<this.heap.length; j++){
+                  this.heap[j].address -= this.heap[i].size;
+                  for(var k=0; k<this.st.length; k++){
+                      if(this.st[k].address==this.heap[j].stack_addr){
+                          this.st[k].heap_addr = this.heap[j].address;
+                          break;
+                      }
+                  }
+                  this.heap[j].current_heap_point -= this.heap[i].size;
+              }
+              this.heap.splice(i,1);
+              break;
+          }
+      }
+  },
+  call(name, paramCount){
+      let allocate_length = 8+4+paramCount;
+      if(allocate_length > this.STACK_SIZE-(this.high_address-this.current_stack_point)){
+          console.log("메모리 공간 부족");
+      }
+      else{
+          this.st.push({name:name, type:"call", size:allocate_length, address:this.current_stack_point});
+          this.current_stack_point-=allocate_length;
+      }
+  },
+  returnf(name){
+      for(var i=this.st.length-1; i>=0; i--){
+          if(this.st[i].type=="call" && this.st[i].name==name){
+              this.current_stack_point=this.st[i].address;
+              this.st = this.st.slice(0,i);
+              break;
+          }
+      }
+  },
+  usage(){
+      var stack_left = this.STACK_SIZE-(this.high_address-this.current_stack_point)
+      var stack_using = this.high_address-this.current_stack_point;
+      var heap_left = this.HEAP_SIZE-this.current_heap_point;
+      var heap_using = this.current_heap_point;
+      return [this.STACK_SIZE,stack_using,stack_left,this.HEAP_SIZE,heap_using,heap_left];
+  },
+  callstack(){
+      let call_list = "";
+      this.st.forEach(element => {
+          if(element.type=="call"){
+              call_list += element.name+"() "+"0x"+return_address(element.address) + " -> ";
+          }
+      });
+      return call_list.slice(0,-4);
+  },
+  heapdump(){
+      let heap_list = [];
+      this.heap.forEach(element => {
+          if(element.name == "malloc"){
+              heap_list.push([element.type, element.size+"byte", "0x"+return_address(element.stack_addr)]);
+          }
+      });
+      return heap_list;
+  },
+  garbageCollect(){
+      for (var i=0; i<this.heap.length; i++){
+          var exist = false;
+          for(var j=0; j<this.st.length; j++){
+              if(this.heap[i].address == this.st[j].heap_addr){
+                  exist = true;
+                  break;
+              }
+          }
+          if(!exist){
+              for(var j=i+1; j<this.heap.length; j++){
+                  for(var k=0; k<this.st.length; k++){
+                      if(this.st[k].name == "malloc" && this.st[k].heap_addr==this.heap[j].address){
+                          this.st[k].heap_addr-=this.heap[i].size;
+                          break;
+                      }
+                  }
+                  this.heap[j].address -= this.heap[i].size;
+              }
+              this.current_heap_point -= this.heap[i].size;
+              this.heap.splice(i,1);
+              i--;
+          }
+      }
+  }
 }
