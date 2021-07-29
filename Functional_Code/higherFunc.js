@@ -21,7 +21,7 @@ function number_feature(){
             return acc += tmp.slice(0, -2) + "\n\n";
         }, "");     // acc 시작은 "" 로 시작
         return features;
-    };
+    }; 
 }
 
 let a = number_feature();       //은닉화 완료
