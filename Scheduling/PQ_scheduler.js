@@ -1,7 +1,7 @@
-import { fifo_scheduler } from "./FIFO_scheduler.js";
+import { fcfs_scheduler } from "./FCFS_scheduler.js";
 import {PriorityQueue} from './Priority_queue.js';
 
-export class pq_scheduler extends fifo_scheduler{           // fifo의 구조를 상속 받음
+export class pq_scheduler extends fcfs_scheduler{           // fifo의 구조를 상속 받음
     constructor(created){
         super(created);
         this.waiting = new PriorityQueue();                 // 우선순위를 위한 priority_queue

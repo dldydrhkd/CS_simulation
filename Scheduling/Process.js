@@ -20,10 +20,10 @@ export class process{
     }
     print(){
         if(this.is_max()){                      // max_time을 넘은 경우 출력
-            console.log(`${this.name}(${this.status}),${this.max_time}/${this.max_time}sec`);   
+            console.log(`${this.name}(${this.status}),${this.max_time}/${this.max_time}sec, thread 개수: ${this.thread}`);   
         }
         else{                                   // max_time 못 넘은 경우 출력
-            console.log(`${this.name}(${this.status}),${this.cur_time}/${this.max_time}sec`);
+            console.log(`${this.name}(${this.status}),${this.cur_time}/${this.max_time}sec, thread 개수: ${this.thread}`);
         }
     }
     change_status(st){                          // 상태 변경 함수

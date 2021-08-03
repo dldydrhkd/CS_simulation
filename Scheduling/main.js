@@ -1,5 +1,5 @@
 import {process} from './Process.js';
-import {fifo_scheduler} from './FIFO_scheduler.js';
+import {fcfs_scheduler} from './FCFS_scheduler.js';
 import { pq_scheduler } from './PQ_scheduler.js';
 
 // //mission1
@@ -8,7 +8,7 @@ let b = new process('B',5,1,'single');
 let c = new process('C',7,1,'single');
 let d = new process('D',8,1,'single');
 let e = new process('D',4,1,'single');
-let fifo = new fifo_scheduler([a,b,c,d,e]);
+let fifo = new fcfs_scheduler([a,b,c,d,e]);
 fifo.scheduling();
 
 // mission2

@@ -1,4 +1,4 @@
-export class fifo_scheduler{
+export class fcfs_scheduler{
     constructor(created){
         this.created = created;                 // 생성된 process list
         this.len = created.length;              // process 총 개수
