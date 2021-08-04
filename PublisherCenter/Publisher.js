@@ -5,10 +5,10 @@ export class publisher{
         this.sender = sender;
         this.center = center;
     }
-    stringify(){
+    stringify(){                        // 정보 출력
         return `Publisher name = "${this.Sender}"`;
     }
-    sendEvent(EventName, Data){
+    sendEvent(EventName, Data){                     // 이벤트 발생
         let new_event = new event(EventName,this.sender, Data);
         this.center.postEvent(new_event)
     }
