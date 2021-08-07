@@ -5,7 +5,7 @@ const pos = require('./pos.js');
 const manager = require('./manager.js');
 const eventQueue = require('./EventQueue.js');
 
-const num_chef = 2              // 요리사의 수
+const num_chef = 3              // 요리사의 수
 const menuCount = 3;            // 메뉴의 개수
 
 let chef_list = [];             // 요리 리스트
