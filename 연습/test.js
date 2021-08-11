@@ -1,10 +1,11 @@
-console.log("1st");
- 
-setTimeout(()=>{
-  console.log("2nd");
-}, 0)
+const one = () => Promise.resolve('One!');
 
-var cnt = 10
-while(true){
-  console.log("3rd");
+function myFunc(){
+  console.log('In function');
+  const res = one();
+  console.log(res);
 }
+
+console.log('Before function!');
+myFunc();
+console.log('After function!');
